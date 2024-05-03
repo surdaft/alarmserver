@@ -3,13 +3,14 @@ package hikvision
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/icholy/digest"
 	"io"
 	"log"
 	"mime"
 	"mime/multipart"
 	"net/http"
 	"strconv"
+
+	"github.com/icholy/digest"
 )
 
 type HttpEventReader struct {
@@ -61,7 +62,11 @@ func (eventReader *HttpEventReader) ReadEvents(camera *HikCamera, channel chan<-
 	}
 	multipartBoundary := params["boundary"]
 
-	xmlEvent := XmlEvent{}
+	xmlEvent := XmlEvent{
+		Time: xmlEventTime{
+			customFormat: camera.EventTimeFormat,
+		},
+	}
 
 	// READ PART BY PART
 	multipartReader := multipart.NewReader(response.Body, multipartBoundary)
@@ -92,7 +97,7 @@ func (eventReader *HttpEventReader) ReadEvents(camera *HikCamera, channel chan<-
 		xmlEvent.Camera = camera
 
 		if eventReader.Debug {
-			log.Printf("%s event: %s (%s - %d)", xmlEvent.Camera.Name, xmlEvent.Type, xmlEvent.State, xmlEvent.Id)
+			log.Printf("[%s] %s event: %s (%s - %d) - %s", xmlEvent.Time.Format("2006-01-02T15:04:05"), xmlEvent.Camera.Name, xmlEvent.Type, xmlEvent.State, xmlEvent.Id, xmlEvent.Description)
 		}
 
 		switch xmlEvent.State {

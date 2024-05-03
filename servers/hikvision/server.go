@@ -3,11 +3,12 @@ package hikvision
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/icholy/digest"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/icholy/digest"
 )
 
 type HttpAuthMethod int
@@ -15,16 +16,19 @@ type HttpAuthMethod int
 const (
 	Basic HttpAuthMethod = iota
 	Digest
+
+	DefaultEventTimeFormat = "2006-01-02T15:04:05Z07:00"
 )
 
 type HikCamera struct {
-	Name        string `json:"name"`
-	Url         string `json:"url"`
-	Username    string `json:"username"`
-	Password    string `json:"password"`
-	EventReader HikEventReader
-	BrokenHttp  bool
-	AuthMethod  HttpAuthMethod
+	Name            string `json:"name"`
+	Url             string `json:"url"`
+	Username        string `json:"username"`
+	Password        string `json:"password"`
+	EventTimeFormat string `json:"event-time-format"`
+	EventReader     HikEventReader
+	BrokenHttp      bool
+	AuthMethod      HttpAuthMethod
 }
 
 type HikEvent struct {
@@ -41,17 +45,36 @@ type Server struct {
 }
 
 type XmlEvent struct {
-	XMLName     xml.Name  `xml:"EventNotificationAlert"`
-	IpAddress   string    `xml:"ipAddress"`
-	Port        int       `xml:"portNo"`
-	ChannelId   int       `xml:"channelID"`
-	Time        time.Time `xml:"dateTime"`
-	Id          int       `xml:"activePostCount"`
-	Type        string    `xml:"eventType"`
-	State       string    `xml:"eventState"`
-	Description string    `xml:"eventDescription"`
+	XMLName     xml.Name     `xml:"EventNotificationAlert"`
+	IpAddress   string       `xml:"ipAddress"`
+	Port        int          `xml:"portNo"`
+	ChannelId   int          `xml:"channelID"`
+	Time        xmlEventTime `xml:"dateTime"`
+	Id          int          `xml:"activePostCount"`
+	Type        string       `xml:"eventType"`
+	State       string       `xml:"eventState"`
+	Description string       `xml:"eventDescription"`
 	Active      bool
 	Camera      *HikCamera
+}
+
+type xmlEventTime struct {
+	customFormat string
+	time.Time
+}
+
+func (t *xmlEventTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var v string
+	d.DecodeElement(&v, &start)
+	parse, err := time.Parse(t.customFormat, v)
+	if err != nil {
+		return err
+	}
+	*t = xmlEventTime{
+		t.customFormat,
+		parse,
+	}
+	return nil
 }
 
 type HikEventReader interface {

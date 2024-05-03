@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/spf13/viper"
 	"github.com/toxuin/alarmserver/servers/dahua"
 	"github.com/toxuin/alarmserver/servers/hikvision"
-	"strings"
 )
 
 type Config struct {
@@ -181,11 +182,17 @@ func (c *Config) Load() *Config {
 				}
 				url += camConfig.GetString("address") + "/ISAPI/"
 
+				timeFormat := hikvision.DefaultEventTimeFormat
+				if timeFormatOverride := camConfig.GetString("event-time-format"); timeFormatOverride != "" {
+					timeFormat = timeFormatOverride
+				}
+
 				camera := hikvision.HikCamera{
-					Name:     camName,
-					Url:      url,
-					Username: camConfig.GetString("username"),
-					Password: camConfig.GetString("password"),
+					Name:            camName,
+					Url:             url,
+					Username:        camConfig.GetString("username"),
+					Password:        camConfig.GetString("password"),
+					EventTimeFormat: timeFormat,
 				}
 				if camConfig.GetBool("rawTcp") {
 					camera.BrokenHttp = true

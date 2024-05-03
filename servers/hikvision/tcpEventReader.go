@@ -120,7 +120,12 @@ func (eventReader *TcpEventReader) ReadEvents(camera *HikCamera, channel chan<- 
 
 		// READ ACTUAL EVENTS
 		var eventString string
-		xmlEvent := XmlEvent{}
+		xmlEvent := XmlEvent{
+			Time: xmlEventTime{
+				customFormat: camera.EventTimeFormat,
+			},
+		}
+
 		for {
 			line, err := textConn.ReadLine()
 			if err == io.EOF { // CONNECTION CLOSED
